@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maven AI Bootcamp Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --border: #e4e2db;
+      --border-light: #eeece6;
+      --text: #1c1917;
+      --text-2: #57534e;
+      --text-3: #a8a29e;
+      --accent: #6c47ff;
+      --accent-bg: #f0ecff;
+      --green: #16a34a;
+      --green-bg: #f0fdf4;
+      --red: #dc2626;
+      --red-bg: #fef2f2;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.04);
+      --radius: 12px;
+      --radius-sm: 7px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+    }
+
+    .brand-text .subtitle {
+      font-size: 0.78rem;
+      color: var(--text-3);
+      margin-top: 1px;
+    }
+
+    /* ── Progress card ── */
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px 16px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+    }
+
+    .progress-stats {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .progress-pct {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .progress-pct span {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-3);
+      letter-spacing: 0;
+    }
+
+    .progress-sessions {
+      font-size: 0.8rem;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+
+    .progress-bar-track {
+      height: 7px;
+      background: var(--border-light);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #8b6cff);
+      border-radius: 99px;
+      transition: width 0.4s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Action buttons ── */
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      padding: 7px 13px;
+      border-radius: var(--radius-sm);
+      transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+      line-height: 1;
+    }
+
+    button:hover {
+      background: var(--bg);
+      border-color: #ccc8c0;
+      color: var(--text);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button.primary:hover {
+      background: #5a39e8;
+      border-color: #5a39e8;
+    }
+
+    /* ── Import panel ── */
+    .import-area {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+    }
+
+    .import-area.visible { display: block; }
+
+    .import-area label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-2);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .import-area textarea {
+      width: 100%;
+      height: 68px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-family: "SF Mono", "Fira Code", ui-monospace, monospace;
+      font-size: 0.72rem;
+      color: var(--text);
+      resize: vertical;
+      background: var(--surface);
+      margin-bottom: 8px;
+    }
+
+    .import-area textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,71,255,.12);
+    }
+
+    .toast {
+      display: none;
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .toast.error { color: var(--red); }
+    .toast.visible { display: block; }
+
+    /* ── Section divider ── */
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      padding-left: 2px;
+    }
+
+    /* ── Days list ── */
+    .days { display: flex; flex-direction: column; gap: 6px; }
+
+    .day-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.15s;
+    }
+
+    .day-card.open {
+      box-shadow: var(--shadow-md);
+    }
+
+    .day-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+      background: var(--surface);
+      transition: background 0.1s;
+      gap: 12px;
+    }
+
+    .day-header:hover { background: #fdfcfa; }
+
+    .day-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .day-badge {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: -0.02em;
+    }
+
+    .day-title {
+      font-size: 0.9rem;
+      font-weight: 650;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .day-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .day-pill {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 2px 9px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .day-pill.complete {
+      background: var(--green-bg);
+      color: var(--green);
+      border-color: #bbf7d0;
+    }
+
+    .chevron {
+      color: var(--text-3);
+      transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+      font-size: 0.6rem;
+      margin-top: 1px;
+    }
+
+    .day-card.open .chevron { transform: rotate(180deg); }
+
+    /* ── Sessions ── */
+    .day-sessions {
+      display: none;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .day-card.open .day-sessions { display: block; }
+
+    .session {
+      display: flex;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+      align-items: flex-start;
+      transition: background 0.1s;
+    }
+
+    .session:last-child { border-bottom: none; }
+    .session:hover { background: #fdfcfa; }
+
+    /* Custom checkbox */
+    .cb-wrap {
+      flex-shrink: 0;
+      margin-top: 1px;
+      position: relative;
+      width: 18px;
+      height: 18px;
+    }
+
+    .cb-wrap input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .cb-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 5px;
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+    }
+
+    .cb-wrap input:checked + .cb-box {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .cb-check {
+      display: none;
+      color: #fff;
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .cb-wrap input:checked + .cb-box .cb-check { display: block; }
+
+    .cb-wrap:hover .cb-box { border-color: var(--accent); }
+
+    .session-body { min-width: 0; flex: 1; }
+
+    .session-slot-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--accent);
+      background: var(--accent-bg);
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin-bottom: 5px;
+    }
+
+    .session.done .session-slot-tag {
+      background: var(--bg);
+      color: var(--text-3);
+    }
+
+    .session-title {
+      font-size: 0.875rem;
+      font-weight: 550;
+      line-height: 1.45;
+      color: var(--text);
+      margin-bottom: 5px;
+      transition: color 0.15s;
+    }
+
+    .session.done .session-title {
+      text-decoration: line-through;
+      color: var(--text-3);
+      text-decoration-color: var(--text-3);
+    }
+
+    .session-maven-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      color: var(--text-3);
+      text-decoration: none;
+      padding: 2px 0;
+      transition: color 0.1s;
+    }
+
+    .session-maven-link:hover { color: var(--accent); }
+
+    .session-maven-link svg { flex-shrink: 0; }
+
+    /* ── Granola ── */
+    .granola-section { margin-top: 8px; }
+
+    .granola-display {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .granola-note-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--accent);
+      text-decoration: none;
+      background: var(--accent-bg);
+      border: 1px solid #d6ccff;
+      border-radius: 5px;
+      padding: 3px 8px;
+      transition: background 0.1s;
+    }
+
+    .granola-note-link:hover {
+      background: #e6e0ff;
+    }
+
+    .granola-action-btn {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-3);
+      font-weight: 500;
+    }
+
+    .granola-action-btn:hover {
+      background: var(--bg);
+      color: var(--text-2);
+      border-color: #ccc8c0;
+    }
+
+    .granola-action-btn.remove { color: var(--red); border-color: #fecaca; }
+    .granola-action-btn.remove:hover { background: var(--red-bg); border-color: #fca5a5; }
+
+    .granola-input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .granola-input {
+      flex: 1;
+      font-size: 0.78rem;
+      padding: 5px 9px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      min-width: 0;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    .granola-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,71,255,.1);
+    }
+
+    .add-note-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 3px 9px;
+      color: var(--text-3);
+      border: 1.5px dashed var(--border);
+      border-radius: 5px;
+      background: transparent;
+      transition: color 0.1s, border-color 0.1s, background 0.1s;
+    }
+
+    .add-note-btn:hover {
+      color: var(--accent);
+      border-color: #c4b5fd;
+      background: var(--accent-bg);
+    }
+
+    /* ── Useful links ── */
+    .links-section { margin-top: 6px; }
+
+    .links-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 5px;
+    }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .link-item-anchor {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--text-2);
+      text-decoration: none;
+      background: #f5f4f0;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 8px;
+      max-width: 340px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .link-item-anchor:hover {
+      background: #eceae4;
+      color: var(--text);
+    }
+
+    .link-remove-btn {
+      flex-shrink: 0;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-3);
+      line-height: 1;
+    }
+
+    .link-remove-btn:hover {
+      color: var(--red);
+      border-color: #fecaca;
+      background: var(--red-bg);
+    }
+
+    .link-input-form {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 4px;
+    }
+
+    .link-input-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .link-input {
+      flex: 1;
+      font-size: 0.78rem;
+      padding: 5px 9px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      min-width: 0;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    .link-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,71,255,.1);
+    }
+
+    .link-input.label-input {
+      font-size: 0.76rem;
+    }
+
+    .add-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 3px 9px;
+      color: var(--text-3);
+      border: 1.5px dashed var(--border);
+      border-radius: 5px;
+      background: transparent;
+      transition: color 0.1s, border-color 0.1s, background 0.1s;
+    }
+
+    .add-link-btn:hover {
+      color: var(--text-2);
+      border-color: #bbb8b0;
+      background: #f0efe9;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header-top">
+    <div class="header-brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <h1>Maven AI Bootcamp</h1>
+        <div class="subtitle">7 days · 16 sessions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress card -->
+  <div class="progress-card">
+    <div class="progress-stats">
+      <div class="progress-pct" id="progress-pct">0<span>%</span></div>
+      <div class="progress-sessions" id="progress-count">0 / 16 sessions</div>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+    </div>
+    <div class="actions">
+      <button class="primary" onclick="exportProgress()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M8 1v9M4 6l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Export
+      </button>
+      <button onclick="toggleImport()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="display:inline;vertical-align:-1px;margin-right:4px"><path d="M8 15V6M4 10l4-4 4 4M2 3h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Import
+      </button>
+    </div>
+
+    <div class="import-area" id="import-area">
+      <label>Backup code</label>
+      <textarea id="import-input" placeholder="Paste your base64 code here…"></textarea>
+      <button class="primary" onclick="importProgress()">Restore progress</button>
+      <div class="toast" id="import-toast"></div>
+    </div>
+  </div>
+
+  <!-- Days -->
+  <div class="section-label">Schedule</div>
+  <div class="days" id="days-container"></div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'maven-bootcamp-v1';
+
+const DAYS = [
+  {
+    title: 'AI Foundations',
+    sessions: [
+      { slot: 'Morning', title: 'Inside the Brain of an LLM: How it Works in 30 Minutes', url: 'https://maven.com/p/141820/inside-the-ai-brain-of-an-llm-how-it-works-in-30-minutes' },
+      { slot: 'Afternoon', title: 'Raise Your Technical Bar as an AI-Native PM', url: 'https://maven.com/p/b062b8/raise-your-technical-bar-as-an-ai-native-pm' },
+    ]
+  },
+  {
+    title: 'Productivity & Workflows',
+    sessions: [
+      { slot: 'Morning', title: 'AI Supercharged Storytelling & Data Analysis for Leaders', url: 'https://maven.com/p/d899e7/ai-supercharged-storytelling-data-analysis-for-leaders' },
+      { slot: 'Afternoon', title: 'Become a 10X AI PM Using Claude Cowork', url: 'https://maven.com/p/e4d21a/become-a-10x-ai-pm-using-claude-cowork' },
+    ]
+  },
+  {
+    title: 'Interviews & Claude Code',
+    sessions: [
+      { slot: 'Morning 1', title: 'Learn to Ace your AI PM Interviews: With Case Studies', url: 'https://maven.com/p/0fe8e9/learn-to-ace-your-ai-pm-interviews-with-case-studies' },
+      { slot: 'Morning 2', title: 'AI PM Interview Mistakes to Avoid in 2026', url: 'https://maven.com/p/8f0473/ai-pm-interview-mistakes-to-avoid-in-2026' },
+      { slot: 'Afternoon 1', title: 'Claude Code 101: Kickstart 2026', url: 'https://maven.com/p/e93f82/claude-code-101-kickstart-2026' },
+      { slot: 'Afternoon 2', title: 'Claude Code 201: Skills, Plugins & MCPs', url: 'https://maven.com/p/2ab172/claude-code-201-skills-plugins-mc-ps' },
+    ]
+  },
+  {
+    title: 'AI Agents',
+    sessions: [
+      { slot: 'Morning', title: "AI Agents 101: The Skill That'll 10x Your Career", url: 'https://maven.com/p/fd2ff3/ai-agents-101-the-skill-that-ll-10x-your-career' },
+      { slot: 'Afternoon', title: 'Build Your First AI App in 30mins with AI Coding', url: 'https://maven.com/p/81cdde/build-your-first-ai-app-in-30mins-with-ai-coding' },
+    ]
+  },
+  {
+    title: 'AI Prototyping',
+    sessions: [
+      { slot: 'Morning', title: 'Prototype to Production with v0 for PMs', url: 'https://maven.com/p/070c8d/prototype-to-production-with-v0-for-p-ms' },
+      { slot: 'Afternoon', title: 'Create AI-Powered Prototypes as a Product Designer', url: 'https://maven.com/p/fb28ec/create-ai-powered-prototypes-as-a-product-designer' },
+    ]
+  },
+  {
+    title: 'RAG & AI Architecture',
+    sessions: [
+      { slot: 'Morning', title: 'RAG Explained: The Architecture Behind Agentic AI Systems', url: 'https://maven.com/p/85ea43/rag-explained-the-architecture-behind-agentic-ai-systems' },
+      { slot: 'Afternoon', title: 'How to use Claude Code to 10x your development workflow', url: 'https://maven.com/p/d6890b/how-to-use-claude-code-to-10x-your-development-workflow' },
+    ]
+  },
+  {
+    title: 'Ship & Strategy',
+    sessions: [
+      { slot: 'Morning', title: 'Build Products Like a Forward Deployed Engineer', url: 'https://maven.com/p/a42c6c/build-products-like-a-forward-deployed-engineer' },
+      { slot: 'Afternoon', title: 'Becoming an AI Engineer in 2026', url: 'https://maven.com/p/c1fe6c/becoming-an-ai-engineer-in-2026' },
+    ]
+  },
+];
+
+let state = { done: {}, notes: {}, links: {} };
+
+function sessionKey(d, s) { return `d${d}s${s}`; }
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch(e) { state = { done: {}, notes: {}, links: {} }; }
+  if (!state.done) state.done = {};
+  if (!state.notes) state.notes = {};
+  if (!state.links) state.links = {};
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function totalDone() {
+  return Object.values(state.done).filter(Boolean).length;
+}
+
+function updateProgress() {
+  const done = totalDone();
+  const total = 16;
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').innerHTML = `${pct}<span>%</span>`;
+  document.getElementById('progress-count').textContent = `${done} / ${total} sessions`;
+}
+
+function toggleDay(dayIdx) {
+  document.getElementById(`day-${dayIdx}`).classList.toggle('open');
+}
+
+function toggleDone(dayIdx, sessIdx) {
+  const key = sessionKey(dayIdx, sessIdx);
+  state.done[key] = !state.done[key];
+  saveState();
+  renderSession(dayIdx, sessIdx);
+  updateDayPill(dayIdx);
+  updateProgress();
+}
+
+function showNoteInput(dayIdx, sessIdx) {
+  const key = sessionKey(dayIdx, sessIdx);
+  const container = document.getElementById(`granola-${key}`);
+  const existing = state.notes[key] || '';
+  container.innerHTML = `
+    <div class="granola-input-row">
+      <input class="granola-input" id="note-input-${key}" type="url" placeholder="https://notes.granola.ai/…" value="${escapeAttr(existing)}">
+      <button class="granola-action-btn" onclick="saveNote(${dayIdx},${sessIdx})">Save</button>
+      <button class="granola-action-btn" onclick="cancelNote(${dayIdx},${sessIdx})">Cancel</button>
+    </div>`;
+  const inp = document.getElementById(`note-input-${key}`);
+  inp.focus();
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveNote(dayIdx, sessIdx);
+    if (e.key === 'Escape') cancelNote(dayIdx, sessIdx);
+  });
+}
+
+function saveNote(dayIdx, sessIdx) {
+  const key = sessionKey(dayIdx, sessIdx);
+  const val = document.getElementById(`note-input-${key}`).value.trim();
+  if (val) state.notes[key] = val;
+  else delete state.notes[key];
+  saveState();
+  renderGranola(dayIdx, sessIdx);
+}
+
+function cancelNote(dayIdx, sessIdx) { renderGranola(dayIdx, sessIdx); }
+
+function removeNote(dayIdx, sessIdx) {
+  delete state.notes[sessionKey(dayIdx, sessIdx)];
+  saveState();
+  renderGranola(dayIdx, sessIdx);
+}
+
+function renderGranola(dayIdx, sessIdx) {
+  const key = sessionKey(dayIdx, sessIdx);
+  const container = document.getElementById(`granola-${key}`);
+  const note = state.notes[key];
+  if (note) {
+    container.innerHTML = `
+      <div class="granola-display">
+        <a class="granola-note-link" href="${escapeAttr(note)}" target="_blank" rel="noopener">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 14V5l5-3 5 3v9" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><rect x="6" y="9" width="4" height="5" rx=".5" stroke="currentColor" stroke-width="1.5"/></svg>
+          Granola Note
+        </a>
+        <button class="granola-action-btn" onclick="showNoteInput(${dayIdx},${sessIdx})">Edit</button>
+        <button class="granola-action-btn remove" onclick="removeNote(${dayIdx},${sessIdx})">Remove</button>
+      </div>`;
+  } else {
+    container.innerHTML = `<button class="add-note-btn" onclick="showNoteInput(${dayIdx},${sessIdx})">+ Granola Note</button>`;
+  }
+}
+
+function renderSession(dayIdx, sessIdx) {
+  const key = sessionKey(dayIdx, sessIdx);
+  const isDone = !!state.done[key];
+  const row = document.getElementById(`session-${key}`);
+  if (!row) return;
+  row.className = 'session' + (isDone ? ' done' : '');
+  const cb = row.querySelector('input[type=checkbox]');
+  if (cb) cb.checked = isDone;
+}
+
+function updateDayPill(dayIdx) {
+  const day = DAYS[dayIdx];
+  const total = day.sessions.length;
+  const done = day.sessions.filter((_, si) => !!state.done[sessionKey(dayIdx, si)]).length;
+  const pill = document.getElementById(`pill-${dayIdx}`);
+  if (!pill) return;
+  pill.textContent = `${done}/${total}`;
+  pill.className = 'day-pill' + (done === total ? ' complete' : '');
+}
+
+// ── Useful links ──
+function renderLinks(di, si) {
+  const key = sessionKey(di, si);
+  const container = document.getElementById(`links-${key}`);
+  if (!container) return;
+  const items = state.links[key] || [];
+  let html = '';
+  if (items.length) {
+    html += '<div class="links-list">';
+    items.forEach((item, idx) => {
+      const display = escapeAttr(item.label || item.url);
+      html += `<div class="link-item">
+        <a class="link-item-anchor" href="${escapeAttr(item.url)}" target="_blank" rel="noopener" title="${escapeAttr(item.url)}">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M10 2h4m0 0v4m0-4L7 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ${display}
+        </a>
+        <button class="link-remove-btn" onclick="removeLink(${di},${si},${idx})" title="Remove">×</button>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += `<button class="add-link-btn" onclick="showLinkInput(${di},${si})">+ Useful link</button>`;
+  container.innerHTML = html;
+}
+
+function showLinkInput(di, si) {
+  const key = sessionKey(di, si);
+  const container = document.getElementById(`links-${key}`);
+  const items = state.links[key] || [];
+  let listHtml = '';
+  if (items.length) {
+    listHtml += '<div class="links-list">';
+    items.forEach((item, idx) => {
+      const display = escapeAttr(item.label || item.url);
+      listHtml += `<div class="link-item">
+        <a class="link-item-anchor" href="${escapeAttr(item.url)}" target="_blank" rel="noopener" title="${escapeAttr(item.url)}">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3M10 2h4m0 0v4m0-4L7 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ${display}
+        </a>
+        <button class="link-remove-btn" onclick="removeLink(${di},${si},${idx})" title="Remove">×</button>
+      </div>`;
+    });
+    listHtml += '</div>';
+  }
+  container.innerHTML = listHtml + `
+    <div class="link-input-form" id="link-form-${key}">
+      <div class="link-input-row">
+        <input class="link-input" id="link-url-${key}" type="url" placeholder="https://…">
+        <input class="link-input label-input" id="link-label-${key}" type="text" placeholder="Label (optional)" style="max-width:160px">
+      </div>
+      <div class="link-input-row">
+        <button class="granola-action-btn" onclick="addLink(${di},${si})">Add</button>
+        <button class="granola-action-btn" onclick="renderLinks(${di},${si})">Cancel</button>
+      </div>
+    </div>`;
+  const urlInput = document.getElementById(`link-url-${key}`);
+  urlInput.focus();
+  urlInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') addLink(di, si);
+    if (e.key === 'Escape') renderLinks(di, si);
+  });
+}
+
+function addLink(di, si) {
+  const key = sessionKey(di, si);
+  const url = document.getElementById(`link-url-${key}`).value.trim();
+  if (!url) return;
+  const label = document.getElementById(`link-label-${key}`).value.trim();
+  if (!state.links[key]) state.links[key] = [];
+  state.links[key].push({ url, label });
+  saveState();
+  renderLinks(di, si);
+}
+
+function removeLink(di, si, idx) {
+  const key = sessionKey(di, si);
+  if (state.links[key]) {
+    state.links[key].splice(idx, 1);
+    if (!state.links[key].length) delete state.links[key];
+    saveState();
+  }
+  renderLinks(di, si);
+}
+
+function escapeAttr(str) {
+  return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+const ARROW_ICON = `<svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function buildUI() {
+  const container = document.getElementById('days-container');
+  container.innerHTML = '';
+
+  DAYS.forEach((day, di) => {
+    const card = document.createElement('div');
+    card.className = 'day-card';
+    card.id = `day-${di}`;
+
+    const totalS = day.sessions.length;
+    const doneS = day.sessions.filter((_, si) => !!state.done[sessionKey(di, si)]).length;
+    const pillClass = doneS === totalS ? 'day-pill complete' : 'day-pill';
+
+    card.innerHTML = `
+      <div class="day-header" onclick="toggleDay(${di})">
+        <div class="day-header-left">
+          <div class="day-badge">${di + 1}</div>
+          <span class="day-title">${day.title}</span>
+        </div>
+        <div class="day-header-right">
+          <span class="day-pill ${pillClass}" id="pill-${di}">${doneS}/${totalS}</span>
+          <svg class="chevron" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="day-sessions" id="sessions-${di}"></div>`;
+
+    container.appendChild(card);
+
+    const sessContainer = document.getElementById(`sessions-${di}`);
+    day.sessions.forEach((sess, si) => {
+      const key = sessionKey(di, si);
+      const isDone = !!state.done[key];
+      const row = document.createElement('div');
+      row.className = 'session' + (isDone ? ' done' : '');
+      row.id = `session-${key}`;
+      row.innerHTML = `
+        <label class="cb-wrap">
+          <input type="checkbox" ${isDone ? 'checked' : ''} onchange="toggleDone(${di},${si})">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+        </label>
+        <div class="session-body">
+          <div class="session-slot-tag">${escapeAttr(sess.slot)}</div>
+          <div class="session-title">${escapeAttr(sess.title)}</div>
+          <a class="session-maven-link" href="${escapeAttr(sess.url)}" target="_blank" rel="noopener">
+            ${ARROW_ICON} View on Maven
+          </a>
+          <div class="granola-section">
+            <div id="granola-${key}"></div>
+          </div>
+          <div class="links-section">
+            <div id="links-${key}"></div>
+          </div>
+        </div>`;
+      sessContainer.appendChild(row);
+      renderGranola(di, si);
+      renderLinks(di, si);
+    });
+  });
+
+  updateProgress();
+}
+
+function exportProgress() {
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+    navigator.clipboard.writeText(encoded).then(() => {
+      showToast('import-toast', 'Code copied to clipboard!', false);
+      document.getElementById('import-area').classList.add('visible');
+    }).catch(() => {
+      document.getElementById('import-area').classList.add('visible');
+      document.getElementById('import-input').value = encoded;
+      showToast('import-toast', 'Auto-copy failed — code shown above.', true);
+    });
+  } catch(e) {
+    alert('Export error.');
+  }
+}
+
+function toggleImport() {
+  document.getElementById('import-area').classList.toggle('visible');
+}
+
+function importProgress() {
+  const raw = document.getElementById('import-input').value.trim();
+  if (!raw) { showToast('import-toast', 'Paste a code first.', true); return; }
+  try {
+    const decoded = decodeURIComponent(escape(atob(raw)));
+    const parsed = JSON.parse(decoded);
+    if (typeof parsed !== 'object' || !parsed.done) throw new Error('Invalid format');
+    state = parsed;
+    if (!state.done) state.done = {};
+    if (!state.notes) state.notes = {};
+    if (!state.links) state.links = {};
+    saveState();
+    buildUI();
+    showToast('import-toast', 'Progress restored!', false);
+  } catch(e) {
+    showToast('import-toast', 'Invalid code. Check and try again.', true);
+  }
+}
+
+function showToast(id, msg, isError) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'toast visible' + (isError ? ' error' : '');
+  setTimeout(() => { el.className = 'toast'; }, 3500);
+}
+
+loadState();
+buildUI();
+</script>
+</body>
+</html>
