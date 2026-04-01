@@ -1002,6 +1002,10 @@ function renderHeaderRight(user) {
 async function sendOtp() {
   const email = document.getElementById('auth-email-input').value.trim();
   if (!email) return;
+  if (email.toLowerCase() !== 'rem.lichani@gmail.com') {
+    setAuthMsg('Access restricted.', 'error');
+    return;
+  }
   setAuthMsg('', '');
   const btn = document.querySelector('#auth-email-step .auth-btn.primary');
   btn.textContent = 'Sending…'; btn.disabled = true;
