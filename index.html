@@ -739,94 +739,6 @@
     .note-content-editable ul, .note-content-editable ol { padding-left: 18px; }
     .note-content-editable li { margin: 2px 0; }
 
-    /* ── Session thumbnail (right column) ── */
-    .session-thumb {
-      flex-shrink: 0;
-      width: 92px;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 5px;
-      padding-top: 2px;
-    }
-
-    .thumb-upload-area {
-      width: 92px;
-      height: 66px;
-      border: 1.5px dashed var(--border);
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      background: var(--bg);
-      transition: border-color 0.12s, background 0.12s;
-    }
-
-    .thumb-upload-area:hover {
-      border-color: var(--text-3);
-      background: #eceae3;
-    }
-
-    .thumb-upload-label {
-      font-size: 0.65rem;
-      font-weight: 500;
-      color: var(--text-3);
-    }
-
-    .thumb-img-wrap { position: relative; }
-
-    .thumb-img {
-      width: 92px;
-      height: 66px;
-      object-fit: cover;
-      border-radius: 8px;
-      display: block;
-      border: 1px solid var(--border);
-    }
-
-    .thumb-url-input {
-      width: 100%;
-      font-size: 0.68rem;
-      padding: 4px 7px;
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      color: var(--text-2);
-      background: var(--surface);
-      font-family: inherit;
-      transition: border-color 0.12s;
-    }
-
-    .thumb-url-input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(108,71,255,.1);
-    }
-
-    .thumb-remove-btn {
-      font-size: 0.68rem;
-      padding: 3px 0;
-      color: var(--text-3);
-      border: none;
-      background: transparent;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .thumb-remove-btn:hover { color: var(--red); }
-
-    .thumb-loading {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.75s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Auth overlay ── */
     .auth-overlay {
@@ -1149,7 +1061,6 @@ async function loadFromCloud(userId) {
     if (!state.thumbnails) state.thumbnails = {};
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     buildUI();
-    fetchAllMissingThumbnails();
   } else {
     await pushToCloud(userId);
   }
@@ -1252,7 +1163,7 @@ const DAYS = [
   },
 ];
 
-let state = { done: {}, notes: {}, links: {}, noteContent: {}, thumbnails: {} };
+let state = { done: {}, notes: {}, links: {}, noteContent: {} };
 
 function sessionKey(d, s) { return `d${d}s${s}`; }
 
@@ -1260,12 +1171,11 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) state = JSON.parse(raw);
-  } catch(e) { state = { done: {}, notes: {}, links: {}, noteContent: {}, thumbnails: {} }; }
+  } catch(e) { state = { done: {}, notes: {}, links: {}, noteContent: {} }; }
   if (!state.done) state.done = {};
   if (!state.notes) state.notes = {};
   if (!state.links) state.links = {};
   if (!state.noteContent) state.noteContent = {};
-  if (!state.thumbnails) state.thumbnails = {};
 }
 
 function saveState() {
@@ -1459,7 +1369,6 @@ function removeLink(di, si, idx) {
 
 // ── Note content ──
 const openNoteContent = new Set();
-const loadingThumbs = new Set();
 
 function renderNoteContent(di, si) {
   const key = sessionKey(di, si);
@@ -1509,115 +1418,6 @@ function saveNoteContent(di, si) {
   saveState();
 }
 
-// ── Thumbnail ──
-function renderThumbnail(di, si) {
-  const key = sessionKey(di, si);
-  const container = document.getElementById(`thumb-${key}`);
-  if (!container) return;
-
-  if (loadingThumbs.has(key)) {
-    container.innerHTML = `
-      <div class="thumb-upload-area">
-        <div class="thumb-loading"></div>
-        <span class="thumb-upload-label">Fetching…</span>
-      </div>`;
-    return;
-  }
-
-  const thumb = state.thumbnails[key] || {};
-  const mavenUrl = DAYS[di].sessions[si].url;
-  const currentUrl = thumb.url !== undefined ? thumb.url : mavenUrl;
-
-  let topHtml;
-  if (thumb.src) {
-    const imgTag = `<img class="thumb-img" src="${thumb.src}" alt="Thumbnail">`;
-    const linked = currentUrl
-      ? `<a href="${escapeAttr(currentUrl)}" target="_blank" rel="noopener">${imgTag}</a>`
-      : imgTag;
-    topHtml = `
-      <div class="thumb-img-wrap">${linked}</div>
-      <button class="thumb-remove-btn" onclick="removeThumbnail(${di},${si})">Remove</button>`;
-  } else {
-    topHtml = `
-      <div class="thumb-upload-area" onclick="document.getElementById('thumb-file-${key}').click()" title="Upload a screenshot">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8.5" cy="10.5" r="1.5" fill="currentColor"/><path d="M21 15l-5-5-5 5M3 19l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="thumb-upload-label">Upload</span>
-      </div>
-      <input type="file" id="thumb-file-${key}" accept="image/*" style="display:none" onchange="handleImageUpload(${di},${si},this)">`;
-  }
-
-  container.innerHTML = topHtml + `
-    <input class="thumb-url-input" type="url" placeholder="Link URL…" value="${escapeAttr(currentUrl)}"
-      oninput="saveThumbUrl(${di},${si},this.value)"
-      onblur="renderThumbnail(${di},${si})">`;
-}
-
-function handleImageUpload(di, si, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const key = sessionKey(di, si);
-    const existing = state.thumbnails[key] || {};
-    state.thumbnails[key] = { src: e.target.result, url: existing.url !== undefined ? existing.url : DAYS[di].sessions[si].url };
-    try { saveState(); } catch(err) {
-      alert('Image too large to store. Try a smaller or compressed image.');
-      delete state.thumbnails[key];
-      return;
-    }
-    renderThumbnail(di, si);
-  };
-  reader.readAsDataURL(file);
-}
-
-function saveThumbUrl(di, si, url) {
-  const key = sessionKey(di, si);
-  if (!state.thumbnails[key]) state.thumbnails[key] = { src: '', url: '' };
-  state.thumbnails[key].url = url;
-  saveState();
-}
-
-function removeThumbnail(di, si) {
-  delete state.thumbnails[sessionKey(di, si)];
-  saveState();
-  renderThumbnail(di, si);
-}
-
-async function autoFetchThumbnail(di, si) {
-  const key = sessionKey(di, si);
-  if (loadingThumbs.has(key)) return;
-  loadingThumbs.add(key);
-  renderThumbnail(di, si);
-  try {
-    const mavenUrl = DAYS[di].sessions[si].url;
-    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(mavenUrl)}`;
-    const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) });
-    const data = await res.json();
-    const html = data.contents || '';
-    const match = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
-                || html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
-    loadingThumbs.delete(key);
-    if (match && match[1]) {
-      state.thumbnails[key] = { src: match[1], url: mavenUrl };
-      try { saveState(); } catch(e) {}
-    }
-  } catch(e) {
-    loadingThumbs.delete(key);
-  }
-  renderThumbnail(di, si);
-}
-
-async function fetchAllMissingThumbnails() {
-  for (let di = 0; di < DAYS.length; di++) {
-    for (let si = 0; si < DAYS[di].sessions.length; si++) {
-      const key = sessionKey(di, si);
-      if (!state.thumbnails[key]?.src) {
-        autoFetchThumbnail(di, si);
-        await new Promise(r => setTimeout(r, 250));
-      }
-    }
-  }
-}
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1672,6 +1472,9 @@ function buildUI() {
         <div class="session-body">
           <div class="session-slot-tag">${escapeAttr(sess.slot)}</div>
           <div class="session-title">${escapeAttr(sess.title)}</div>
+          <a class="session-maven-link" href="${escapeAttr(sess.url)}" target="_blank" rel="noopener">
+            ${ARROW_ICON} View on Maven
+          </a>
           <div class="granola-section">
             <div id="granola-${key}"></div>
           </div>
@@ -1682,12 +1485,11 @@ function buildUI() {
             <div id="links-${key}"></div>
           </div>
         </div>
-        <div class="session-thumb" id="thumb-${key}"></div>`;
+`;
       sessContainer.appendChild(row);
       renderGranola(di, si);
       renderNoteContent(di, si);
       renderLinks(di, si);
-      renderThumbnail(di, si);
     });
   });
 
@@ -1726,7 +1528,6 @@ function importProgress() {
     if (!state.notes) state.notes = {};
     if (!state.links) state.links = {};
     if (!state.noteContent) state.noteContent = {};
-    if (!state.thumbnails) state.thumbnails = {};
     saveState();
     buildUI();
     showToast('import-toast', 'Progress restored!', false);
