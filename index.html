@@ -1002,13 +1002,20 @@ function renderHeaderRight(user) {
 async function sendOtp() {
   const email = document.getElementById('auth-email-input').value.trim();
   if (!email) return;
-  if (email.toLowerCase() !== 'rem.lichani@gmail.com') {
-    setAuthMsg('Access restricted.', 'error');
+  setAuthMsg('Checking…', '');
+  const btn = document.querySelector('#auth-email-step .auth-btn.primary');
+  btn.textContent = 'Sending…'; btn.disabled = true;
+  const { data: allowed, error: wlErr } = await supa
+    .from('allowed_emails')
+    .select('email')
+    .eq('email', email.toLowerCase())
+    .maybeSingle();
+  if (wlErr || !allowed) {
+    setAuthMsg('Access restricted. Ask Rémy to add you.', 'error');
+    btn.textContent = 'Send code'; btn.disabled = false;
     return;
   }
   setAuthMsg('', '');
-  const btn = document.querySelector('#auth-email-step .auth-btn.primary');
-  btn.textContent = 'Sending…'; btn.disabled = true;
   const { error } = await supa.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   btn.textContent = 'Send code'; btn.disabled = false;
   if (error) { setAuthMsg(error.message, 'error'); return; }
