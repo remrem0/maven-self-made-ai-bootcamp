@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Maven AI Bootcamp Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -651,9 +652,356 @@
       border-color: #bbb8b0;
       background: #f0efe9;
     }
+
+    /* ── Note content collapsible ── */
+    .note-content-section { margin-top: 6px; }
+
+    .note-content-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 0;
+    }
+
+    .note-content-chevron {
+      color: var(--text-3);
+      transition: transform 0.18s;
+      flex-shrink: 0;
+    }
+
+    .note-content-chevron.open { transform: rotate(90deg); }
+
+    .note-content-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .note-content-toggle:hover .note-content-label { color: var(--text-2); }
+    .note-content-toggle:hover .note-content-chevron { color: var(--text-2); }
+
+    .note-content-body {
+      display: none;
+      margin-top: 6px;
+    }
+
+    .note-content-body.open { display: block; }
+
+    .note-editor {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .note-toolbar {
+      display: flex;
+      gap: 2px;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--bg);
+    }
+
+    .fmt-btn {
+      padding: 3px 8px;
+      font-size: 0.8rem;
+      border: none;
+      background: transparent;
+      border-radius: 4px;
+      color: var(--text-2);
+      cursor: pointer;
+      line-height: 1.2;
+      font-family: inherit;
+    }
+
+    .fmt-btn:hover { background: var(--border-light); color: var(--text); }
+
+    .note-content-editable {
+      min-height: 90px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      color: var(--text);
+      outline: none;
+    }
+
+    .note-content-editable:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-3);
+      pointer-events: none;
+      display: block;
+    }
+
+    .note-content-editable ul, .note-content-editable ol { padding-left: 18px; }
+    .note-content-editable li { margin: 2px 0; }
+
+    /* ── Session thumbnail (right column) ── */
+    .session-thumb {
+      flex-shrink: 0;
+      width: 92px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      padding-top: 2px;
+    }
+
+    .thumb-upload-area {
+      width: 92px;
+      height: 66px;
+      border: 1.5px dashed var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      background: var(--bg);
+      transition: border-color 0.12s, background 0.12s;
+    }
+
+    .thumb-upload-area:hover {
+      border-color: var(--text-3);
+      background: #eceae3;
+    }
+
+    .thumb-upload-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-3);
+    }
+
+    .thumb-img-wrap { position: relative; }
+
+    .thumb-img {
+      width: 92px;
+      height: 66px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+      border: 1px solid var(--border);
+    }
+
+    .thumb-url-input {
+      width: 100%;
+      font-size: 0.68rem;
+      padding: 4px 7px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-2);
+      background: var(--surface);
+      font-family: inherit;
+      transition: border-color 0.12s;
+    }
+
+    .thumb-url-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(108,71,255,.1);
+    }
+
+    .thumb-remove-btn {
+      font-size: 0.68rem;
+      padding: 3px 0;
+      color: var(--text-3);
+      border: none;
+      background: transparent;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .thumb-remove-btn:hover { color: var(--red); }
+
+    .thumb-loading {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Auth overlay ── */
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(245,244,240,0.96);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      padding: 32px 28px 24px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+
+    .auth-logo {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin: 0 auto 16px;
+    }
+
+    .auth-card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .auth-card p {
+      font-size: 0.82rem;
+      color: var(--text-2);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      margin-bottom: 10px;
+      text-align: center;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+
+    .auth-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,71,255,.1);
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 9px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 6px;
+      transition: background 0.12s;
+    }
+
+    .auth-btn.primary { background: var(--accent); color: #fff; border: none; }
+    .auth-btn.primary:hover { background: #5a39e8; }
+    .auth-btn.primary:disabled { background: #b5a4f5; cursor: default; }
+    .auth-btn.secondary { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .auth-btn.secondary:hover { background: var(--bg); }
+
+    .auth-message { font-size: 0.8rem; margin-top: 4px; font-weight: 500; min-height: 18px; }
+    .auth-message.error { color: var(--red); }
+    .auth-message.success { color: var(--green); }
+
+    /* ── Header right / sync ── */
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .user-email {
+      font-size: 0.7rem;
+      color: var(--text-3);
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .logout-btn {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
+      cursor: pointer;
+    }
+
+    .logout-btn:hover { color: var(--red); border-color: #fecaca; background: var(--red-bg); }
+
+    .sync-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .sync-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-3);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .sync-dot.syncing { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+    .sync-dot.synced { background: var(--green); }
+    .sync-dot.error { background: var(--red); }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .sync-label { font-size: 0.68rem; color: var(--text-3); }
   </style>
 </head>
 <body>
+<div id="auth-overlay" class="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">⚡</div>
+    <h2>Maven AI Bootcamp</h2>
+    <div id="auth-email-step">
+      <p>Sign in to sync your progress across all your devices.</p>
+      <input type="email" class="auth-input" id="auth-email-input" placeholder="your@email.com"
+        onkeydown="if(event.key==='Enter')sendOtp()">
+      <button class="auth-btn primary" onclick="sendOtp()">Send code</button>
+    </div>
+    <div id="auth-otp-step" style="display:none">
+      <p>Check your email — we sent a 6-digit code to <strong id="auth-email-display"></strong>.</p>
+      <input type="text" class="auth-input" id="auth-otp-input" placeholder="000000"
+        maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')verifyOtp()">
+      <button class="auth-btn primary" onclick="verifyOtp()">Verify</button>
+      <button class="auth-btn secondary" onclick="backToEmail()">Back</button>
+    </div>
+    <div id="auth-message" class="auth-message"></div>
+  </div>
+</div>
+
 <div class="container">
 
   <!-- Header -->
@@ -665,6 +1013,7 @@
         <div class="subtitle">7 days · 16 sessions</div>
       </div>
     </div>
+    <div id="header-right" class="header-right"></div>
   </div>
 
   <!-- Progress card -->
@@ -702,6 +1051,151 @@
 </div>
 
 <script>
+// ── Supabase ──
+const { createClient } = window.supabase;
+const supa = createClient(
+  'https://nigjoujkwxkqyabolnut.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pZ2pvdWprd3hrcXlhYm9sbnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTE5ODQsImV4cCI6MjA5MDYyNzk4NH0.4l1XiKPFtF3oGxddOg9WHC-taKNAvvVsnJ401_QF_6A'
+);
+
+let syncTimeout = null;
+let cloudSyncReady = false;
+
+function setSyncStatus(s) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.className = 'sync-dot ' + s;
+  lbl.textContent = s === 'syncing' ? 'Syncing…' : s === 'synced' ? 'Synced' : s === 'error' ? 'Error' : '';
+}
+
+function renderHeaderRight(user) {
+  const el = document.getElementById('header-right');
+  if (!el) return;
+  if (user) {
+    el.innerHTML = `
+      <div class="user-row">
+        <span class="user-email">${user.email}</span>
+        <button class="logout-btn" onclick="signOut()">Sign out</button>
+      </div>
+      <div class="sync-row">
+        <div class="sync-dot synced" id="sync-dot"></div>
+        <span class="sync-label" id="sync-label">Synced</span>
+      </div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+async function sendOtp() {
+  const email = document.getElementById('auth-email-input').value.trim();
+  if (!email) return;
+  setAuthMsg('', '');
+  const btn = document.querySelector('#auth-email-step .auth-btn.primary');
+  btn.textContent = 'Sending…'; btn.disabled = true;
+  const { error } = await supa.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  btn.textContent = 'Send code'; btn.disabled = false;
+  if (error) { setAuthMsg(error.message, 'error'); return; }
+  document.getElementById('auth-email-display').textContent = email;
+  document.getElementById('auth-email-step').style.display = 'none';
+  document.getElementById('auth-otp-step').style.display = 'block';
+  document.getElementById('auth-otp-input').focus();
+}
+
+async function verifyOtp() {
+  const email = document.getElementById('auth-email-input').value.trim();
+  const token = document.getElementById('auth-otp-input').value.trim();
+  if (!token) return;
+  setAuthMsg('', '');
+  const btn = document.querySelector('#auth-otp-step .auth-btn.primary');
+  btn.textContent = 'Verifying…'; btn.disabled = true;
+  const { error } = await supa.auth.verifyOtp({ email, token, type: 'email' });
+  btn.textContent = 'Verify'; btn.disabled = false;
+  if (error) setAuthMsg(error.message, 'error');
+}
+
+function backToEmail() {
+  document.getElementById('auth-otp-step').style.display = 'none';
+  document.getElementById('auth-email-step').style.display = 'block';
+  setAuthMsg('', '');
+}
+
+function setAuthMsg(msg, type) {
+  const el = document.getElementById('auth-message');
+  el.textContent = msg;
+  el.className = 'auth-message' + (type ? ' ' + type : '');
+}
+
+async function signOut() {
+  cloudSyncReady = false;
+  await supa.auth.signOut();
+  renderHeaderRight(null);
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('auth-otp-step').style.display = 'none';
+  document.getElementById('auth-email-step').style.display = 'block';
+}
+
+async function loadFromCloud(userId) {
+  setSyncStatus('syncing');
+  const { data, error } = await supa.from('bootcamp_progress')
+    .select('state').eq('user_id', userId).single();
+  if (error && error.code !== 'PGRST116') { setSyncStatus('error'); return; }
+  if (data?.state) {
+    state = data.state;
+    if (!state.done) state.done = {};
+    if (!state.notes) state.notes = {};
+    if (!state.links) state.links = {};
+    if (!state.noteContent) state.noteContent = {};
+    if (!state.thumbnails) state.thumbnails = {};
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    buildUI();
+    fetchAllMissingThumbnails();
+  } else {
+    await pushToCloud(userId);
+  }
+  cloudSyncReady = true;
+  setSyncStatus('synced');
+}
+
+async function pushToCloud(userId) {
+  const { error } = await supa.from('bootcamp_progress')
+    .upsert({ user_id: userId, state, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  setSyncStatus(error ? 'error' : 'synced');
+}
+
+function scheduleSyncToCloud() {
+  if (!cloudSyncReady) return;
+  setSyncStatus('syncing');
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(async () => {
+    const { data: { session } } = await supa.auth.getSession();
+    if (session) await pushToCloud(session.user.id);
+  }, 1500);
+}
+
+supa.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    renderHeaderRight(session.user);
+    await loadFromCloud(session.user.id);
+  } else if (event === 'SIGNED_OUT') {
+    cloudSyncReady = false;
+    document.getElementById('auth-overlay').style.display = 'flex';
+    renderHeaderRight(null);
+  }
+});
+
+async function checkAuth() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    renderHeaderRight(session.user);
+    await loadFromCloud(session.user.id);
+  } else {
+    document.getElementById('auth-overlay').style.display = 'flex';
+  }
+}
+
 const STORAGE_KEY = 'maven-bootcamp-v1';
 
 const DAYS = [
@@ -758,7 +1252,7 @@ const DAYS = [
   },
 ];
 
-let state = { done: {}, notes: {}, links: {} };
+let state = { done: {}, notes: {}, links: {}, noteContent: {}, thumbnails: {} };
 
 function sessionKey(d, s) { return `d${d}s${s}`; }
 
@@ -766,14 +1260,17 @@ function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) state = JSON.parse(raw);
-  } catch(e) { state = { done: {}, notes: {}, links: {} }; }
+  } catch(e) { state = { done: {}, notes: {}, links: {}, noteContent: {}, thumbnails: {} }; }
   if (!state.done) state.done = {};
   if (!state.notes) state.notes = {};
   if (!state.links) state.links = {};
+  if (!state.noteContent) state.noteContent = {};
+  if (!state.thumbnails) state.thumbnails = {};
 }
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  scheduleSyncToCloud();
 }
 
 function totalDone() {
@@ -960,6 +1457,172 @@ function removeLink(di, si, idx) {
   renderLinks(di, si);
 }
 
+// ── Note content ──
+const openNoteContent = new Set();
+const loadingThumbs = new Set();
+
+function renderNoteContent(di, si) {
+  const key = sessionKey(di, si);
+  const container = document.getElementById(`note-content-${key}`);
+  if (!container) return;
+  const isOpen = openNoteContent.has(key);
+  container.innerHTML = `
+    <div class="note-content-toggle" onclick="toggleNoteContent(${di},${si})">
+      <svg class="note-content-chevron ${isOpen ? 'open' : ''}" width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <path d="M3.5 2l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="note-content-label">Note content</span>
+    </div>
+    <div class="note-content-body ${isOpen ? 'open' : ''}">
+      <div class="note-editor">
+        <div class="note-toolbar">
+          <button class="fmt-btn" onmousedown="event.preventDefault();document.execCommand('bold')" title="Bold"><b>B</b></button>
+          <button class="fmt-btn" onmousedown="event.preventDefault();document.execCommand('italic')" title="Italic"><i>I</i></button>
+          <button class="fmt-btn" onmousedown="event.preventDefault();document.execCommand('insertUnorderedList')" title="Bullet list">&#8226; List</button>
+        </div>
+        <div class="note-content-editable" id="note-textarea-${key}" contenteditable="true"
+          data-placeholder="Paste your note content here…"
+          oninput="saveNoteContent(${di},${si})"></div>
+      </div>
+    </div>`;
+  const editable = document.getElementById(`note-textarea-${key}`);
+  if (editable && state.noteContent[key]) editable.innerHTML = state.noteContent[key];
+}
+
+function toggleNoteContent(di, si) {
+  const key = sessionKey(di, si);
+  if (openNoteContent.has(key)) openNoteContent.delete(key);
+  else openNoteContent.add(key);
+  renderNoteContent(di, si);
+  if (openNoteContent.has(key)) {
+    setTimeout(() => { const el = document.getElementById(`note-textarea-${key}`); if (el) el.focus(); }, 10);
+  }
+}
+
+function saveNoteContent(di, si) {
+  const key = sessionKey(di, si);
+  const el = document.getElementById(`note-textarea-${key}`);
+  if (!el) return;
+  const html = el.innerHTML;
+  if (html && el.textContent.trim()) state.noteContent[key] = html;
+  else delete state.noteContent[key];
+  saveState();
+}
+
+// ── Thumbnail ──
+function renderThumbnail(di, si) {
+  const key = sessionKey(di, si);
+  const container = document.getElementById(`thumb-${key}`);
+  if (!container) return;
+
+  if (loadingThumbs.has(key)) {
+    container.innerHTML = `
+      <div class="thumb-upload-area">
+        <div class="thumb-loading"></div>
+        <span class="thumb-upload-label">Fetching…</span>
+      </div>`;
+    return;
+  }
+
+  const thumb = state.thumbnails[key] || {};
+  const mavenUrl = DAYS[di].sessions[si].url;
+  const currentUrl = thumb.url !== undefined ? thumb.url : mavenUrl;
+
+  let topHtml;
+  if (thumb.src) {
+    const imgTag = `<img class="thumb-img" src="${thumb.src}" alt="Thumbnail">`;
+    const linked = currentUrl
+      ? `<a href="${escapeAttr(currentUrl)}" target="_blank" rel="noopener">${imgTag}</a>`
+      : imgTag;
+    topHtml = `
+      <div class="thumb-img-wrap">${linked}</div>
+      <button class="thumb-remove-btn" onclick="removeThumbnail(${di},${si})">Remove</button>`;
+  } else {
+    topHtml = `
+      <div class="thumb-upload-area" onclick="document.getElementById('thumb-file-${key}').click()" title="Upload a screenshot">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8.5" cy="10.5" r="1.5" fill="currentColor"/><path d="M21 15l-5-5-5 5M3 19l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="thumb-upload-label">Upload</span>
+      </div>
+      <input type="file" id="thumb-file-${key}" accept="image/*" style="display:none" onchange="handleImageUpload(${di},${si},this)">`;
+  }
+
+  container.innerHTML = topHtml + `
+    <input class="thumb-url-input" type="url" placeholder="Link URL…" value="${escapeAttr(currentUrl)}"
+      oninput="saveThumbUrl(${di},${si},this.value)"
+      onblur="renderThumbnail(${di},${si})">`;
+}
+
+function handleImageUpload(di, si, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const key = sessionKey(di, si);
+    const existing = state.thumbnails[key] || {};
+    state.thumbnails[key] = { src: e.target.result, url: existing.url !== undefined ? existing.url : DAYS[di].sessions[si].url };
+    try { saveState(); } catch(err) {
+      alert('Image too large to store. Try a smaller or compressed image.');
+      delete state.thumbnails[key];
+      return;
+    }
+    renderThumbnail(di, si);
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveThumbUrl(di, si, url) {
+  const key = sessionKey(di, si);
+  if (!state.thumbnails[key]) state.thumbnails[key] = { src: '', url: '' };
+  state.thumbnails[key].url = url;
+  saveState();
+}
+
+function removeThumbnail(di, si) {
+  delete state.thumbnails[sessionKey(di, si)];
+  saveState();
+  renderThumbnail(di, si);
+}
+
+async function autoFetchThumbnail(di, si) {
+  const key = sessionKey(di, si);
+  if (loadingThumbs.has(key)) return;
+  loadingThumbs.add(key);
+  renderThumbnail(di, si);
+  try {
+    const mavenUrl = DAYS[di].sessions[si].url;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(mavenUrl)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) });
+    const data = await res.json();
+    const html = data.contents || '';
+    const match = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    loadingThumbs.delete(key);
+    if (match && match[1]) {
+      state.thumbnails[key] = { src: match[1], url: mavenUrl };
+      try { saveState(); } catch(e) {}
+    }
+  } catch(e) {
+    loadingThumbs.delete(key);
+  }
+  renderThumbnail(di, si);
+}
+
+async function fetchAllMissingThumbnails() {
+  for (let di = 0; di < DAYS.length; di++) {
+    for (let si = 0; si < DAYS[di].sessions.length; si++) {
+      const key = sessionKey(di, si);
+      if (!state.thumbnails[key]?.src) {
+        autoFetchThumbnail(di, si);
+        await new Promise(r => setTimeout(r, 250));
+      }
+    }
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function escapeAttr(str) {
   return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -1009,19 +1672,22 @@ function buildUI() {
         <div class="session-body">
           <div class="session-slot-tag">${escapeAttr(sess.slot)}</div>
           <div class="session-title">${escapeAttr(sess.title)}</div>
-          <a class="session-maven-link" href="${escapeAttr(sess.url)}" target="_blank" rel="noopener">
-            ${ARROW_ICON} View on Maven
-          </a>
           <div class="granola-section">
             <div id="granola-${key}"></div>
+          </div>
+          <div class="note-content-section">
+            <div id="note-content-${key}"></div>
           </div>
           <div class="links-section">
             <div id="links-${key}"></div>
           </div>
-        </div>`;
+        </div>
+        <div class="session-thumb" id="thumb-${key}"></div>`;
       sessContainer.appendChild(row);
       renderGranola(di, si);
+      renderNoteContent(di, si);
       renderLinks(di, si);
+      renderThumbnail(di, si);
     });
   });
 
@@ -1059,6 +1725,8 @@ function importProgress() {
     if (!state.done) state.done = {};
     if (!state.notes) state.notes = {};
     if (!state.links) state.links = {};
+    if (!state.noteContent) state.noteContent = {};
+    if (!state.thumbnails) state.thumbnails = {};
     saveState();
     buildUI();
     showToast('import-toast', 'Progress restored!', false);
@@ -1076,6 +1744,8 @@ function showToast(id, msg, isError) {
 
 loadState();
 buildUI();
+fetchAllMissingThumbnails();
+checkAuth();
 </script>
 </body>
 </html>
