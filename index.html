@@ -992,9 +992,9 @@
       <button class="auth-btn primary" onclick="sendOtp()">Send code</button>
     </div>
     <div id="auth-otp-step" style="display:none">
-      <p>Check your email — we sent a 6-digit code to <strong id="auth-email-display"></strong>.</p>
-      <input type="text" class="auth-input" id="auth-otp-input" placeholder="000000"
-        maxlength="6" inputmode="numeric" onkeydown="if(event.key==='Enter')verifyOtp()">
+      <p>Check your email — we sent a code to <strong id="auth-email-display"></strong>.</p>
+      <input type="text" class="auth-input" id="auth-otp-input" placeholder="Enter code"
+        maxlength="8" inputmode="numeric" onkeydown="if(event.key==='Enter')verifyOtp()">
       <button class="auth-btn primary" onclick="verifyOtp()">Verify</button>
       <button class="auth-btn secondary" onclick="backToEmail()">Back</button>
     </div>
